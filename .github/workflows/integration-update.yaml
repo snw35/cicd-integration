@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   update:
-    uses: snw35/cicd/.github/workflows/github.yaml@mainline
+    uses: snw35/cicd/.github/workflows/github.yaml@main
     with:
       WORKDIR: .
       IMAGE_TAG: SAMPLE_VERSION
@@ -20,7 +20,7 @@ jobs:
   create-release:
     needs: update
     if: github.ref_name == github.event.repository.default_branch && needs.update.outputs.changed == 'true'
-    uses: snw35/cicd/.github/workflows/create-release.yaml@mainline
+    uses: snw35/cicd/.github/workflows/create-release.yaml@main
     with:
       targets_json: ${{ needs.update.outputs.targets }}
       CICD_REF: ${{ vars.CICD_REF }}
