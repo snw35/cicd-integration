@@ -1,0 +1,12 @@
+[__config__]
+oldver = "old_ver.json"
+newver = "new_ver.json"
+
+[BASE]
+source = "container"
+container = "library/alpine"
+include_regex = "\\d+\\.\\d+\\.?\\d?"
+
+[SAMPLE]
+source = "cmd"
+cmd = "cat version.txt"
