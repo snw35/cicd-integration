@@ -42,7 +42,7 @@ jobs:
       - name: Verify updated versions
         if: steps.diff.outputs.changed == 'true'
         run: |
-          expected="$(cat version.txt | tr -d '\r\n')"
+          expected="$(tr -d '\r\n' < version.txt)"
           actual="$(awk -F= '$1 == "ENV SAMPLE_VERSION" {print $2}' Dockerfile | tr -d '\r\n')"
           if [ -z "$actual" ]; then
             echo "SAMPLE_VERSION not found in Dockerfile."
