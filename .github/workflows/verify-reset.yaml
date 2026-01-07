@@ -62,6 +62,26 @@ jobs:
           if actual != expected:
               raise SystemExit(f"old_ver.json SAMPLE mismatch: {actual} != {expected}")
           PY
+      - name: Delete update release and tags
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tags="$(git tag --points-at HEAD)"
+          if [ -z "$tags" ]; then
+            echo "No tags found on update commit."
+            exit 0
+          fi
+          for tag in $tags; do
+            echo "Deleting release/tag $tag"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release delete "$tag" --yes --cleanup-tag
+            else
+              echo "Release for tag '$tag' not found; deleting tag only."
+              git push --delete origin "$tag"
+            fi
+            git tag -d "$tag" >/dev/null 2>&1 || true
+          done
       - name: Reset default branch to baseline
         if: steps.diff.outputs.changed == 'true'
         env:
