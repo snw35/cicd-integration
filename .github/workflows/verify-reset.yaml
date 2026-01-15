@@ -58,7 +58,20 @@ jobs:
 
           expected = Path("version.txt").read_text().strip()
           data = json.loads(Path("old_ver.json").read_text())
-          actual = data.get("SAMPLE")
+          actual = None
+          if isinstance(data, dict):
+              if "SAMPLE" in data:
+                  actual = data.get("SAMPLE")
+                  if isinstance(actual, dict):
+                      actual = actual.get("version")
+              else:
+                  nested = data.get("data")
+                  if isinstance(nested, dict):
+                      sample = nested.get("SAMPLE")
+                      if isinstance(sample, dict):
+                          actual = sample.get("version")
+          if actual is None:
+              raise SystemExit("old_ver.json SAMPLE version not found")
           if actual != expected:
               raise SystemExit(f"old_ver.json SAMPLE mismatch: {actual} != {expected}")
           PY
