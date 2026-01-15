@@ -2,10 +2,10 @@
   "version": 2,
   "data": {
     "BASE": {
-      "version": "3.23.2"
+      "version": "3.22"
     },
     "SAMPLE": {
-      "version": "1.0.1"
+      "version": "1.0.0"
     }
   }
 }
