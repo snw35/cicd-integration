@@ -8,7 +8,6 @@ on:
       cicd_ref:
         description: Ref (branch or tag) for snw35/cicd workflows and helper scripts.
         required: false
-        default: main
 
 permissions:
   contents: write
@@ -19,7 +18,7 @@ jobs:
     with:
       WORKDIR: .
       IMAGE_TAG: SAMPLE_VERSION
-      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF }}
+      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
     secrets: inherit
 
   create-release:
@@ -28,5 +27,5 @@ jobs:
     uses: snw35/cicd/.github/workflows/create-release.yaml@main
     with:
       targets_json: ${{ needs.update.outputs.targets }}
-      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF }}
+      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
     secrets: inherit

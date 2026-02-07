@@ -18,6 +18,14 @@ Optional repository variables:
 - CICD_REF: override the ref used for snw35/cicd helper scripts.
 - BASELINE_REF: override the baseline tag or branch name (default: baseline).
 
+Cross-repo PR integration note:
+- `snw35/cicd` dispatches this workflow on an ephemeral branch and rewrites this
+  workflow's reusable `uses:` refs to the `cicd` PR SHA before dispatch.
+- The token used in `snw35/cicd` (`CICD_INTEGRATION_TOKEN`) needs least-privilege
+  fine-grained PAT permissions on this repository:
+  - **Actions: Read and write** (dispatch + workflow run polling)
+  - **Contents: Read and write** (ephemeral branch ref and workflow file rewrite)
+
 ## Workflow example
 The integration update workflow calls the reusable workflows like any downstream
 repository:
@@ -25,17 +33,19 @@ repository:
 ```yaml
 jobs:
   update:
-    uses: snw35/cicd/.github/workflows/github.yaml@mainline
+    uses: snw35/cicd/.github/workflows/github.yaml@main
     with:
       IMAGE_TAG: SAMPLE_VERSION
+      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
     secrets: inherit
 
   release:
     needs: update
     if: github.ref_name == github.event.repository.default_branch && needs.update.outputs.changed == 'true'
-    uses: snw35/cicd/.github/workflows/create-release.yaml@mainline
+    uses: snw35/cicd/.github/workflows/create-release.yaml@main
     with:
       targets_json: ${{ needs.update.outputs.targets }}
+      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
     secrets: inherit
 ```
 
