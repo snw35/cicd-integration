@@ -41,40 +41,7 @@ jobs:
           fi
       - name: Verify updated versions
         if: steps.diff.outputs.changed == 'true'
-        run: |
-          expected="$(tr -d '\r\n' < version.txt)"
-          actual="$(awk -F= '$1 == "ENV SAMPLE_VERSION" {print $2}' Dockerfile | tr -d '\r\n')"
-          if [ -z "$actual" ]; then
-            echo "SAMPLE_VERSION not found in Dockerfile."
-            exit 1
-          fi
-          if [ "$actual" != "$expected" ]; then
-            echo "SAMPLE_VERSION mismatch: Dockerfile=$actual version.txt=$expected"
-            exit 1
-          fi
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          expected = Path("version.txt").read_text().strip()
-          data = json.loads(Path("old_ver.json").read_text())
-          actual = None
-          if isinstance(data, dict):
-              if "SAMPLE" in data:
-                  actual = data.get("SAMPLE")
-                  if isinstance(actual, dict):
-                      actual = actual.get("version")
-              else:
-                  nested = data.get("data")
-                  if isinstance(nested, dict):
-                      sample = nested.get("SAMPLE")
-                      if isinstance(sample, dict):
-                          actual = sample.get("version")
-          if actual is None:
-              raise SystemExit("old_ver.json SAMPLE version not found")
-          if actual != expected:
-              raise SystemExit(f"old_ver.json SAMPLE mismatch: {actual} != {expected}")
-          PY
+        run: python3 .github/scripts/verify_updated_versions.py
       - name: Delete update release and tags
         if: steps.diff.outputs.changed == 'true'
         env:

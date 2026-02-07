@@ -1,0 +1,4 @@
+services:
+  integration:
+    image: ${IMAGE}
+    command: ["sh", "-c", "sleep 600"]
