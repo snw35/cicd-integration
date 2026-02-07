@@ -22,6 +22,7 @@ jobs:
       TARGETS_JSON: >-
         [{"name":"root","workdir":".","image_tag":"SAMPLE_VERSION"},{"name":"secondary","workdir":"secondary","image_tag":"SECONDARY_VERSION"}]
       CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
+      RUN_AUTOMATED_UPDATE_ON_PR: ${{ github.event_name == 'pull_request' }}
     secrets: inherit
 
   create-release:
