@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "data": {
+    "BASE": {
+      "version": "3.22"
+    },
+    "SECONDARY": {
+      "version": "2.0.0"
+    }
+  }
+}

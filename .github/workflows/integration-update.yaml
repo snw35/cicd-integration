@@ -16,8 +16,8 @@ jobs:
   update:
     uses: snw35/cicd/.github/workflows/github.yaml@main
     with:
-      WORKDIR: .
-      IMAGE_TAG: SAMPLE_VERSION
+      TARGETS_JSON: >-
+        [{"name":"root","workdir":".","image_tag":"SAMPLE_VERSION"},{"name":"secondary","workdir":"secondary","image_tag":"SECONDARY_VERSION"}]
       CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
     secrets: inherit
 
