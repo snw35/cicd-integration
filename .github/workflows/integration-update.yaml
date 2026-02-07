@@ -8,6 +8,9 @@ on:
       cicd_ref:
         description: Ref (branch or tag) for snw35/cicd workflows and helper scripts.
         required: false
+  pull_request:
+    paths:
+      - .github/workflows/**
 
 permissions:
   contents: write
