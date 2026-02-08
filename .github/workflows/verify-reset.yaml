@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASELINE_REF: ${{ vars.BASELINE_REF != '' && vars.BASELINE_REF || 'baseline' }}
+      WORKFLOW_PUSH_TOKEN: ${{ secrets.WORKFLOW_PUSH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,5 +68,20 @@ jobs:
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
+          git fetch origin "${DEFAULT_BRANCH}" --depth=1
+
+          workflow_diff="$(git diff --name-only "origin/${DEFAULT_BRANCH}" "${{ steps.baseline.outputs.ref }}" -- '.github/workflows/*')"
+          if [ -n "$workflow_diff" ] && [ -z "${WORKFLOW_PUSH_TOKEN}" ]; then
+            echo "Reset would update workflow files:"
+            echo "$workflow_diff"
+            echo "ERROR: Reset requires repository secret WORKFLOW_PUSH_TOKEN with permission to update workflows."
+            echo "Provide a token with workflows write access (classic PAT: repo + workflow, or equivalent fine-grained/App permissions including Workflows: write)."
+            exit 1
+          fi
+
+          if [ -n "${WORKFLOW_PUSH_TOKEN}" ]; then
+            git remote set-url origin "https://x-access-token:${WORKFLOW_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
           git checkout -B "${DEFAULT_BRANCH}" "${{ steps.baseline.outputs.ref }}"
           git push --force origin "${DEFAULT_BRANCH}"
