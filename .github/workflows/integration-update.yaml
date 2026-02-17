@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   update:
-    uses: snw35/cicd/.github/workflows/github.yaml@main
+    uses: snw35/cicd/.github/workflows/github.yaml@83e24681bf3581902469abba8592ab8282e8eaf0
     with:
       TARGETS_JSON: >-
         [{"name":"root","workdir":".","image_tag":"SAMPLE_VERSION"},{"name":"secondary","workdir":"secondary","image_tag":"SECONDARY_VERSION"}]
@@ -29,7 +29,7 @@ jobs:
   create-release:
     needs: update
     if: github.ref_name == github.event.repository.default_branch && needs.update.outputs.changed == 'true'
-    uses: snw35/cicd/.github/workflows/create-release.yaml@main
+    uses: snw35/cicd/.github/workflows/create-release.yaml@83e24681bf3581902469abba8592ab8282e8eaf0
     with:
       targets_json: ${{ needs.update.outputs.targets }}
       CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
