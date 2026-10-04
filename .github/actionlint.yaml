@@ -1,0 +1,7 @@
+# actionlint (through v1.7.12) does not know the `queue` key of job/workflow
+# `concurrency`. Remove this once it does (or if increment 2a's spike shows the
+# key is rejected by GitHub and it is dropped from the workflow).
+paths:
+  .github/workflows/integration-update.yaml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'

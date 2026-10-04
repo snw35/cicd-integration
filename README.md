@@ -16,13 +16,16 @@ keep the default branch in a known baseline state.
   secondary target update inputs.
 - `docker-compose.yaml`: compose stack used by reusable workflow validation.
 - `.github/workflows/integration-update.yaml`: scheduled/dispatch update job
-  that calls reusable workflows.
+  that calls the shared `container-update.yaml` workflow.
+- `.github/actionlint.yaml`: tolerates the `concurrency.queue` key that
+  actionlint does not know yet.
 - `.github/workflows/verify-reset.yaml`: verifies version updates for all
   targets, deletes run-created release/tags, and force-resets to baseline.
 
 ## What this integration test covers
 
-- Multi-target workflow dispatch/update via `TARGETS_JSON` (root + secondary).
+- Multi-target workflow dispatch/update through the shared `container-update.yaml`
+  workflow's workdir matrix (root + secondary).
 - `nvchecker` + `dfupdate` processing for Dockerfiles containing:
   - multiple `ENV` declarations,
   - duplicate keys where last assignment is the effective value.
@@ -54,26 +57,27 @@ Cross-repo PR integration note:
 
 ## Workflow example
 
-The integration update workflow calls reusable workflows with explicit
-multi-target configuration:
+The integration update workflow calls the shared `container-update.yaml`
+workflow (the same thin shape the consumer repos use) with a two-workdir matrix:
 
 ```yaml
 jobs:
-  update:
-    uses: snw35/cicd/.github/workflows/github.yaml@main
+  container-update:
+    concurrency:
+      group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.run_id) || format('container-update-{0}', github.repository) }}
+      queue: max
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+      actions: read
+    uses: snw35/cicd/.github/workflows/container-update.yaml@main
     with:
-      TARGETS_JSON: >-
-        [{"name":"root","workdir":".","image_tag":"SAMPLE_VERSION"},{"name":"secondary","workdir":"secondary","image_tag":"SECONDARY_VERSION"}]
+      WORKDIRS: '[".","secondary"]'
+      IMAGE_TAG: SAMPLE_VERSION
+      IMAGE_TAG_BY_WORKDIR: '{"secondary":"SECONDARY_VERSION"}'
       CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
-    secrets: inherit
-
-  create-release:
-    needs: update
-    if: github.ref_name == github.event.repository.default_branch && needs.update.outputs.changed == 'true'
-    uses: snw35/cicd/.github/workflows/create-release.yaml@main
-    with:
-      targets_json: ${{ needs.update.outputs.targets }}
-      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
+      RUN_AUTOMATED_UPDATE_ON_PR: ${{ github.event_name == 'pull_request' }}
     secrets: inherit
 ```
 
