@@ -1,4 +1,6 @@
 name: Integration Update
+# The title tells verify-reset which scenario ran (dispatch input, else the event).
+run-name: Integration Update (${{ github.event_name == 'workflow_dispatch' && inputs.scenario || github.event_name }})
 
 on:
   schedule:
@@ -8,6 +10,13 @@ on:
       cicd_ref:
         description: Ref (branch or tag) for snw35/cicd workflows and helper scripts.
         required: false
+      scenario:
+        description: Scenario label (use the "Integration Scenario" workflow to prepare and start one).
+        required: false
+        default: main
+  # Push to main = the hand-fix scenario (publish mode); see scenario.yaml.
+  push:
+    branches: [ "main" ]
   pull_request:
     paths:
       - .github/workflows/**
@@ -15,10 +24,11 @@ on:
 permissions:
   contents: write
   packages: write
-  actions: read
 
 jobs:
   container-update:
+    # Pushes only count when they are a scenario hand fix (verify-reset's baseline reset also pushes).
+    if: ${{ github.event_name != 'push' || startsWith(github.event.head_commit.message, 'Fixture handfix') }}
     concurrency:
       group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.run_id) || format('container-update-{0}', github.repository) }}
       queue: max
@@ -26,7 +36,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-      actions: read
     uses: snw35/cicd/.github/workflows/container-update.yaml@main
     with:
       WORKDIRS: '[".","secondary"]'
