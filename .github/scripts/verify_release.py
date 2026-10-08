@@ -89,7 +89,15 @@ def digest(ref: str) -> str:
 
 def has_label(ref: str) -> bool:
     result = subprocess.run(
-        ["docker", "buildx", "imagetools", "inspect", ref, "--format", "{{json .Image}}"],
+        [
+            "docker",
+            "buildx",
+            "imagetools",
+            "inspect",
+            ref,
+            "--format",
+            "{{json .Image}}",
+        ],
         capture_output=True,
         text=True,
     )
@@ -119,7 +127,9 @@ def main() -> None:
         print(f"ok: new tag {name} at HEAD")
     else:
         if tag_commit == head or at_head:
-            fail(f"tag moved or created at HEAD (tag {name} at {tag_commit}, at HEAD: {at_head})")
+            fail(
+                f"tag moved or created at HEAD (tag {name} at {tag_commit}, at HEAD: {at_head})"
+            )
         print(f"ok: tag {name} stayed at {tag_commit}; no tag at HEAD")
 
     for tag in tags:
