@@ -35,7 +35,8 @@ jobs:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      # Only the hand fix needs the PAT: a push made with github.token starts no workflow run.
+      # Checkout uses the PAT only for the hand fix, whose push must start the update run. Other
+      # pushes stay on github.token, which starts no workflow run.
       - uses: actions/checkout@v4
         with:
           token: ${{ inputs.scenario == 'handfix' && secrets.WORKFLOW_PUSH_TOKEN || github.token }}
@@ -84,6 +85,10 @@ jobs:
           esac
       - name: Start the update run
         if: ${{ inputs.scenario != 'handfix' }}
+        # Dispatch with the PAT: a run dispatched with github.token does not fire verify-reset's
+        # workflow_run trigger, so nothing would verify or reset the fixture.
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PUSH_TOKEN }}
         run: |
           args=(workflow run integration-update.yaml --ref "$DEFAULT_BRANCH" -f "scenario=${SCENARIO}")
           if [ -n "$CICD_REF_INPUT" ]; then

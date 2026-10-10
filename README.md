@@ -48,6 +48,11 @@ Configure secrets:
 
 - `DOCKER_PASSWORD`: Docker Hub password or access token for
   `$GITHUB_REPOSITORY_OWNER`.
+- `WORKFLOW_PUSH_TOKEN`: PAT used by the scenarios to push the hand fix and to
+  dispatch the update run, and by `verify-reset` to reset workflow files. A run
+  started with `github.token` does not fire `verify-reset`, so the scenario
+  dispatch must use this PAT. Needs classic `repo` + `workflow` scopes, or
+  fine-grained Contents, Workflows and Actions (read and write) on this repo.
 
 Optional repository variables:
 
