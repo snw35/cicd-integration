@@ -36,7 +36,7 @@ jobs:
     permissions:
       contents: write
       packages: write
-    uses: snw35/cicd/.github/workflows/container-update.yaml@main
+    uses: snw35/cicd/.github/workflows/container-update.yaml@d0379ffcddf06ab042d047f9c68cd65e82a7b0be
     with:
       WORKDIRS: '[".","secondary"]'
       IMAGE_TAG: SAMPLE_VERSION
