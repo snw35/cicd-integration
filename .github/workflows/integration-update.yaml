@@ -1,4 +1,6 @@
 name: Integration Update
+# The title tells verify-reset which scenario ran (dispatch input, else the event).
+run-name: Integration Update (${{ github.event_name == 'workflow_dispatch' && inputs.scenario || github.event_name }})
 
 on:
   schedule:
@@ -8,6 +10,13 @@ on:
       cicd_ref:
         description: Ref (branch or tag) for snw35/cicd workflows and helper scripts.
         required: false
+      scenario:
+        description: Scenario label (use the "Integration Scenario" workflow to prepare and start one).
+        required: false
+        default: main
+  # Push to main = the hand-fix scenario (publish mode); see scenario.yaml.
+  push:
+    branches: [ "main" ]
   pull_request:
     paths:
       - .github/workflows/**
@@ -17,20 +26,21 @@ permissions:
   packages: write
 
 jobs:
-  update:
-    uses: snw35/cicd/.github/workflows/github.yaml@main
+  container-update:
+    # Pushes only count when they are a scenario hand fix (verify-reset's baseline reset also pushes).
+    if: ${{ github.event_name != 'push' || startsWith(github.event.head_commit.message, 'Fixture handfix') }}
+    concurrency:
+      group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.run_id) || format('container-update-{0}', github.repository) }}
+      queue: max
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    uses: snw35/cicd/.github/workflows/container-update.yaml@main
     with:
-      TARGETS_JSON: >-
-        [{"name":"root","workdir":".","image_tag":"SAMPLE_VERSION"},{"name":"secondary","workdir":"secondary","image_tag":"SECONDARY_VERSION"}]
+      WORKDIRS: '[".","secondary"]'
+      IMAGE_TAG: SAMPLE_VERSION
+      IMAGE_TAG_BY_WORKDIR: '{"secondary":"SECONDARY_VERSION"}'
       CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
       RUN_AUTOMATED_UPDATE_ON_PR: ${{ github.event_name == 'pull_request' }}
-    secrets: inherit
-
-  create-release:
-    needs: update
-    if: github.ref_name == github.event.repository.default_branch && needs.update.outputs.changed == 'true'
-    uses: snw35/cicd/.github/workflows/create-release.yaml@main
-    with:
-      targets_json: ${{ needs.update.outputs.targets }}
-      CICD_REF: ${{ inputs.cicd_ref || vars.CICD_REF || 'main' }}
     secrets: inherit

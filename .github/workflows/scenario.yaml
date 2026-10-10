@@ -1,0 +1,92 @@
+name: Integration Scenario
+run-name: Integration Scenario (${{ inputs.scenario }})
+
+# Prepares fixture `main` for one scenario and starts it:
+#   main        baseline as is (stale main versions plus a base-image bump) -> dispatches the update run
+#   dependency  main versions made current, so only the base image bumps; a release for that
+#               version is seeded first -> dispatches the update run
+#   handfix     seeds a release for the baseline version, then pushes a Dockerfile comment edit
+#               (publish mode); the push event starts the run
+# verify-reset then asserts the outcome and resets main to the baseline.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Scenario to run.
+        type: choice
+        options: [ main, dependency, handfix ]
+        default: main
+      cicd_ref:
+        description: Ref (branch or tag) for snw35/cicd workflows and helper scripts.
+        required: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  scenario:
+    if: ${{ github.ref_name == github.event.repository.default_branch }}
+    runs-on: ubuntu-latest
+    env:
+      SCENARIO: ${{ inputs.scenario }}
+      CICD_REF_INPUT: ${{ inputs.cicd_ref }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # Only the hand fix needs the PAT: a push made with github.token starts no workflow run.
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ inputs.scenario == 'handfix' && secrets.WORKFLOW_PUSH_TOKEN || github.token }}
+      - name: Prepare scenario
+        run: |
+          git config user.name "$GITHUB_REPOSITORY_OWNER"
+          git config user.email "snw35@use.startmail.com"
+
+          # Tag the current commit with the release name of the Dockerfiles at HEAD and create
+          # its release with a placeholder body, as if that main version had been released before.
+          seed_release() {
+            local tag
+            tag="$(python3 .github/scripts/verify_release.py name)"
+            git tag "$tag" HEAD
+            git push origin "refs/tags/${tag}"
+            gh release create "$tag" --verify-tag --title "Release ${tag}" --notes "Seeded by the integration scenario."
+          }
+
+          case "$SCENARIO" in
+            main)
+              ;;
+            dependency)
+              for dir in . secondary; do
+                key="SAMPLE_VERSION"
+                [ "$dir" = "secondary" ] && key="SECONDARY_VERSION"
+                grep -E "^ENV ${key}=" "$dir/Dockerfile" | tail -1 | cut -d= -f2 > "$dir/version.txt"
+              done
+              git add -A
+              git commit -m "Fixture dependency scenario"
+              git push origin "HEAD:${DEFAULT_BRANCH}"
+              seed_release
+              ;;
+            handfix)
+              # The seed commit is not a hand fix (its title does not start with "Fixture handfix"),
+              # so its push does not start an update run.
+              echo "seed ${GITHUB_RUN_ID}" >> README.md
+              git add -A
+              git commit -m "Fixture seed ${GITHUB_RUN_ID}"
+              git push origin "HEAD:${DEFAULT_BRANCH}"
+              seed_release
+              echo "# handfix ${GITHUB_RUN_ID}" >> Dockerfile
+              git add -A
+              git commit -m "Fixture handfix ${GITHUB_RUN_ID}"
+              git push origin "HEAD:${DEFAULT_BRANCH}"
+              ;;
+          esac
+      - name: Start the update run
+        if: ${{ inputs.scenario != 'handfix' }}
+        run: |
+          args=(workflow run integration-update.yaml --ref "$DEFAULT_BRANCH" -f "scenario=${SCENARIO}")
+          if [ -n "$CICD_REF_INPUT" ]; then
+            args+=(-f "cicd_ref=${CICD_REF_INPUT}")
+          fi
+          gh "${args[@]}"
